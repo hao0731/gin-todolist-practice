@@ -12,6 +12,12 @@ type RequestValidator[T any] struct {
 	ctx *gin.Context
 }
 
+func NewRequestValidator[T any](ctx *gin.Context) *RequestValidator[T] {
+	return &RequestValidator[T]{
+		ctx: ctx,
+	}
+}
+
 func (validator *RequestValidator[T]) Validate(payload *T) map[string]string {
 	if err := validator.ctx.ShouldBindJSON(payload); err != nil {
 		var validationErrors v.ValidationErrors
