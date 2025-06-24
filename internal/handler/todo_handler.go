@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"example.com/todolist/internal/infrastructure/error_handler"
+	"example.com/todolist/internal/infrastructure/http_exception"
 	"example.com/todolist/internal/infrastructure/validator"
 	"example.com/todolist/internal/model"
 	"example.com/todolist/internal/service"
@@ -21,20 +21,15 @@ func NewTodoHandler(todoService service.TodoService) *TodoHandler {
 }
 
 func (h *TodoHandler) CreateTodo(ctx *gin.Context) {
-	var payload model.CreateTodoRequest
-	payloadValidator := validator.NewRequestValidator[model.CreateTodoRequest](ctx)
-	errorDetail := payloadValidator.Validate(&payload)
-	if errorDetail != nil {
-		ctx.Error(error_handler.NewHttpException(http.StatusBadRequest, "Invalid request payload", errorDetail))
-		return
-	}
+	payload := ctx.MustGet(validator.VALIDATED_PAYLOAD_KEY).(*model.CreateTodoRequest)
 
 	todo, err := h.todoService.Create(service.CreateTodo{
 		Title:       payload.Title,
 		Description: payload.Description})
 
 	if err != nil {
-		ctx.Error(error_handler.NewHttpException(http.StatusInternalServerError, "Failed to create todo", nil))
+		exception := http_exception.NewInternalServerErrorException("Failed to create todo", nil)
+		ctx.JSON(exception.StatusCode, exception)
 		return
 	}
 
@@ -45,13 +40,15 @@ func (h *TodoHandler) GetTodoById(ctx *gin.Context) {
 	id, hasId := ctx.Params.Get("id")
 
 	if !hasId {
-		ctx.Error(error_handler.NewHttpException(http.StatusBadRequest, "Todo ID is required", nil))
+		exception := http_exception.NewBadRequestException("Todo ID is required", nil)
+		ctx.JSON(http.StatusBadRequest, exception)
 		return
 	}
 
 	todo, err := h.todoService.GetById(id)
 	if err != nil {
-		ctx.Error(error_handler.NewHttpException(http.StatusInternalServerError, "Failed to retrieve todo", nil))
+		exception := http_exception.NewInternalServerErrorException("Failed to retrieve todo", nil)
+		ctx.JSON(exception.StatusCode, exception)
 		return
 	}
 
@@ -61,7 +58,8 @@ func (h *TodoHandler) GetTodoById(ctx *gin.Context) {
 func (h *TodoHandler) GetAllTodos(ctx *gin.Context) {
 	todos, err := h.todoService.GetAll()
 	if err != nil {
-		ctx.Error(error_handler.NewHttpException(http.StatusInternalServerError, "Failed to retrieve todos", nil))
+		exception := http_exception.NewInternalServerErrorException("Failed to retrieve todos", nil)
+		ctx.JSON(exception.StatusCode, exception)
 		return
 	}
 
@@ -78,13 +76,15 @@ func (h *TodoHandler) DeleteTodo(ctx *gin.Context) {
 	id, hasId := ctx.Params.Get("id")
 
 	if !hasId {
-		ctx.Error(error_handler.NewHttpException(http.StatusBadRequest, "Todo ID is required", nil))
+		exception := http_exception.NewBadRequestException("Todo ID is required", nil)
+		ctx.JSON(http.StatusBadRequest, exception)
 		return
 	}
 
 	err := h.todoService.Delete(id)
 	if err != nil {
-		ctx.Error(error_handler.NewHttpException(http.StatusInternalServerError, "Failed to delete todo", nil))
+		exception := http_exception.NewInternalServerErrorException("Failed to delete todo", nil)
+		ctx.JSON(exception.StatusCode, exception)
 		return
 	}
 

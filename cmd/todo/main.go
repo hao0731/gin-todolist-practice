@@ -7,7 +7,8 @@ import (
 
 	"example.com/todolist/config"
 	"example.com/todolist/internal/handler"
-	"example.com/todolist/internal/infrastructure/error_handler"
+	"example.com/todolist/internal/infrastructure/validator"
+	"example.com/todolist/internal/model"
 	"example.com/todolist/internal/repository"
 	"example.com/todolist/internal/service"
 	ginzap "github.com/gin-contrib/zap"
@@ -36,14 +37,13 @@ func main() {
 	router := gin.New()
 	router.Use(ginzap.Ginzap(logger, time.RFC3339, true))
 	router.Use(ginzap.RecoveryWithZap(logger, true))
-	router.Use(error_handler.ErrorHandler())
 
 	todoRepository := repository.NewInMemoryTodoRepository()
 	todoService := service.NewTodoService(todoRepository)
 	todoHandler := handler.NewTodoHandler(todoService)
 
 	v1 := router.Group("/api/v1")
-	v1.POST("/todos", todoHandler.CreateTodo)
+	v1.POST("/todos", validator.ZogValidatePayload[model.CreateTodoRequest](model.CreateTodoRequestSchema), todoHandler.CreateTodo)
 	v1.GET("/todos/:id", todoHandler.GetTodoById)
 	v1.GET("/todos", todoHandler.GetAllTodos)
 	v1.DELETE("/todos/:id", todoHandler.DeleteTodo)
