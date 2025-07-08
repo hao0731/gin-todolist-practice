@@ -1,6 +1,10 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+	"os"
+
+	"github.com/spf13/viper"
+)
 
 type Config struct {
 	Env    string
@@ -12,7 +16,7 @@ type Config struct {
 func LoadConfig() (*Config, error) {
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("config")
+	viper.AddConfigPath(os.Getenv("CONFIG_PATH"))
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err
